@@ -13,6 +13,10 @@ class MessageHandler {
         await whatsappService.sendMessage(message.from, response, message.id);
       }
       await whatsappService.markAsRead(message.id);
+    } else if (message?.type === 'interactive') {
+      const option = message?.interactive?.button_reply?.title.toLowerCase().trim();
+      await this.handleMenuOption(message.from, option);
+      await whatsappService.markAsRead(message.id);
     }
   }
 
@@ -46,6 +50,25 @@ class MessageHandler {
     ];
 
     await whatsappService.sendInteractiveButtons(to, menuMessage, buttons);
+  }
+
+  async handleMenuOption(to, option) {
+    console.log(option)
+    let response;
+    switch (option) {
+      case 'agendar':
+        response = "Agendar Cita";
+        break;
+      case 'consultar':
+        response = "Realiza tu consulta";
+        break
+      case 'ubicacion': 
+       response = 'Esta es nuestra Ubicación';
+       break
+      default: 
+       response = "Lo siento, no entendí tu selección, Por Favor, elige una de las opciones del menú."
+    }
+    await whatsappService.sendMessage(to, response);
   }
 
 }
