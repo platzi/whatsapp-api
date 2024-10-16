@@ -1,12 +1,12 @@
 import whatsappService from './whatsappService.js';
 
 class MessageHandler {
-  async handleIncomingMessage(message) {
+  async handleIncomingMessage(message, senderInfo) {
     if (message?.type === 'text') {
       const incomingMessage = message.text.body.toLowerCase().trim();
 
       if(this.isGreeting(incomingMessage)){
-        await this.sendWelcomeMessage(message.from, message.id)
+        await this.sendWelcomeMessage(message.from, message.id, senderInfo);
       } else {
         const response = `Echo: ${message.text.body}`;
         await whatsappService.sendMessage(message.from, response, message.id);
@@ -20,9 +20,13 @@ class MessageHandler {
     return greetings.includes(message);
   }
 
-  async sendWelcomeMessage(to, messageId) {
-    const welcomeMessage = "Hola, Bienvenido a nuestro servicio de Veteria online." + 
-    "¿En Qué puedo ayudarte Hoy?";
+  getSenderName(senderInfo) {
+    return senderInfo.profile?.name || senderInfo.wa_id;
+  }
+
+  async sendWelcomeMessage(to, messageId, senderInfo) {
+    const name = this.getSenderName(senderInfo);
+    const welcomeMessage = `Hola ${name}, Bienvenido a MEDPET, Tu tienda de mascotas en línea. ¿En qué puedo ayudarte hoy?`;
     await whatsappService.sendMessage(to, welcomeMessage, messageId);
   }
 
