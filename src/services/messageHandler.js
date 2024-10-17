@@ -99,6 +99,32 @@ class MessageHandler {
     await whatsappService.sendMediaMessage(to, type, mediaUrl, caption);
   }
 
+  completeAppointment(to) {
+    const appointment = this.appointmentState[to];
+    delete this.appointmentState[to];
+
+    const userData = [
+      to,
+      appointment.name,
+      appointment.petName,
+      appointment.petType,
+      appointment.reason,
+      new Date().toISOString()
+    ]
+
+    console.log(userData);
+
+    return `Gracias por agendar tu cita. 
+    Resumen de tu cita:
+    
+    Nombre: ${appointment.name}
+    Nombre de la mascota: ${appointment.petName}
+    Tipo de mascota: ${appointment.petType}
+    Motivo: ${appointment.reason}
+    
+    Nos pondremos en contacto contigo pronto para confirmar la fecha y hora de tu cita.`
+  }
+
   async handleAppointmentFlow(to, message) {
     const state = this.appointmentState[to];
     let response;
@@ -121,7 +147,7 @@ class MessageHandler {
         break;
       case 'reason':
         state.reason = message;
-        response = 'Gracias por agendar tu cita.';
+        response = this.completeAppointment(to);
         break;
     }
     await whatsappService.sendMessage(to, response);
