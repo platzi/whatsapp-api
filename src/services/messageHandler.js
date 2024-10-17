@@ -1,6 +1,11 @@
 import whatsappService from './whatsappService.js';
 
 class MessageHandler {
+
+  constructor() {
+    this.appointmentState = {};
+  }
+
   async handleIncomingMessage(message, senderInfo) {
     if (message?.type === 'text') {
       const incomingMessage = message.text.body.toLowerCase().trim();
@@ -10,9 +15,10 @@ class MessageHandler {
         await this.sendWelcomeMenu(message.from);
       } else if(incomingMessage === 'media') {
         await this.sendMedia(message.from);
+      } else if (this.appointmentState[message.from]) {
+        await this.handleAppointmentFlow(message.from, incomingMessage);
       } else {
-        const response = `Echo: ${message.text.body}`;
-        await whatsappService.sendMessage(message.from, response, message.id);
+        await this.handleMenuOption(message.from, incomingMessage);
       }
       await whatsappService.markAsRead(message.id);
     } else if (message?.type === 'interactive') {
@@ -55,11 +61,11 @@ class MessageHandler {
   }
 
   async handleMenuOption(to, option) {
-    console.log(option)
     let response;
     switch (option) {
       case 'agendar':
-        response = "Agendar Cita";
+        this.appointmentState[to] = { step: 'name' }
+        response = "Por favor, ingresa tu nombre:";
         break;
       case 'consultar':
         response = "Realiza tu consulta";
@@ -91,6 +97,34 @@ class MessageHandler {
     const type = 'document';
 
     await whatsappService.sendMediaMessage(to, type, mediaUrl, caption);
+  }
+
+  async handleAppointmentFlow(to, message) {
+    const state = this.appointmentState[to];
+    let response;
+
+    switch (state.step) {
+      case 'name':
+        state.name = message;
+        state.step = 'petName';
+        response = "Gracias, Ahora, ¿Cuál es el nombre de tu Mascota?"
+        break;
+      case 'petName':
+        state.petName = message;
+        state.step = 'petType';
+        response = '¿Qué tipo de mascota es? (por ejemplo: perro, gato, huron, etc.)'
+        break;
+      case 'petType':
+        state.petType = message;
+        state.step = 'reason';
+        response = '¿Cuál es el motivo de la Consulta?';
+        break;
+      case 'reason':
+        state.reason = message;
+        response = 'Gracias por agendar tu cita.';
+        break;
+    }
+    await whatsappService.sendMessage(to, response);
   }
 
 }
