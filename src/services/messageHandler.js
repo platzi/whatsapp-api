@@ -1,10 +1,12 @@
 import whatsappService from './whatsappService.js';
 import appendToSheet from './googleSheetsService.js';
+import openAiService from './openAiService.js';
 
 class MessageHandler {
 
   constructor() {
     this.appointmentState = {};
+    this.assistandState = {};
   }
 
   async handleIncomingMessage(message, senderInfo) {
@@ -18,6 +20,8 @@ class MessageHandler {
         await this.sendMedia(message.from);
       } else if (this.appointmentState[message.from]) {
         await this.handleAppointmentFlow(message.from, incomingMessage);
+      } else if (this.assistandState[message.from]) {
+        await this.handleAssistandFlow(message.from, incomingMessage);
       } else {
         await this.handleMenuOption(message.from, incomingMessage);
       }
@@ -69,6 +73,7 @@ class MessageHandler {
         response = "Por favor, ingresa tu nombre:";
         break;
       case 'consultar':
+        this.assistandState[to] = { step: 'question' };
         response = "Realiza tu consulta";
         break
       case 'ubicacion': 
@@ -152,6 +157,26 @@ class MessageHandler {
         break;
     }
     await whatsappService.sendMessage(to, response);
+  }
+
+  async handleAssistandFlow(to, message) {
+    const state = this.assistandState[to];
+    let response;
+
+    const menuMessage = "¿La respuesta fue de tu ayuda?"
+    const buttons = [
+      { type: 'reply', reply: { id: 'option_4', title: "Si, Gracias" } },
+      { type: 'reply', reply: { id: 'option_5', title: 'Hacer otra pregunta'}},
+      { type: 'reply', reply: { id: 'option_6', title: 'Emergencia'}}
+    ];
+
+    if (state.step === 'question') {
+      response = await openAiService(message);
+    }
+
+    delete this.assistandState[to];
+    await whatsappService.sendMessage(to, response);
+    await whatsappService.sendInteractiveButtons(to, menuMessage, buttons);
   }
 
 }
